@@ -1,0 +1,12 @@
+#input file for Chapidif
+#Dielectric function model: Mermin MLL, add Chi, (Mermin-renormalisation), quadratic dispersion, (relativistic)
+#
+#density,2.7, unit cell mass,27.0
+#Osc. Amplitude 	Gamma(eV) 	Omega(eV) 	U(eV) 
+#GOS N elec 	edge(eV) 	 10 * n + l	  atomic number Z 
+#GOS 	2	2 	30 	13	 density effect included up  to: 200.0 (eV),	rescaling on 
+#GOS 	1	1 	31 	13	 density effect included up  to: 200.0 (eV),	rescaling on 
+#Belkacem N elec 	omega(eV) 	 Gamma 
+#Kaneko N elec 	 Q (a.u.) 	 width (eV)	 gap U (eV)	 ang. mom l 	 gamma Arista 
+#
+#==========end description dielectric function==========

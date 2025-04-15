@@ -1,0 +1,15 @@
+input file for Chapidif
+Dielectric function model: Extended Drude
+ELF reference: # Wolfgang S.M. Werner, Kathrin Glantschnig and Claudia Ambrosch-Draxl J. Phys. Chem. Ref. Data, Vol. 38, No. 4, 2009,1013-1092 #
+Background dielectric constant:1.0
+density,7.87, unit cell mass,55.84
+Amplitue	Gamma(eV)	Omega(eV) , alpha 
+0.049000 	7.957000	0.000000	1.000000
+168.542000 	0.500000	1.146000	1.000000
+31.470000 	1.978000	3.867000	1.000000
+225.156000 	10.534000	8.932000	1.000000
+19.119000 	148.635000	32.803000	1.000000
+58.086000 	8.386000	18.996000	1.000000
+1278.599000 	231.927000	43.961000	1.000000
+246.807000 	16.809000	63.301000	0.500000
+150.084000 	2.121000	53.114000	0.500000

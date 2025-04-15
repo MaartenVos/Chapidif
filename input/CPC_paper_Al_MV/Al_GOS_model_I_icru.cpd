@@ -1,0 +1,14 @@
+input file for Chapidif
+Dielectric function model: plain Lindhard or LL, add ELF, (without Mermin-renormalisation), quadratic dispersion, (non-relativistic)
+GOS intensities as ICRU recommandation
+density,2.7, unit cell mass,27.0
+Osc. Amplitude 	Gamma(eV) 	Omega(eV)	 U(eV) 
+0.95 	2 	16 	0.0
+GOS N elec 	edge(eV) 	 10 * n + l	  atomic number Z 
+GOS 	6.259	76.75 	21 	13	 density effect included up  to: 200.0 (eV),	rescaling on 
+GOS 	2.147	121.5 	20 	13	 density effect included up  to: 200.0 (eV),	rescaling on 
+GOS 	1.623	1564 	10 	13	 density effect included up  to: 200.0 (eV),	rescaling on 
+Belkacem N elec 	omega(eV) 	 Gamma 
+Kaneko N elec 	 Q (a..u.) 	 width (eV)	 gap U (eV)	 ang. mom l 	 gamma arista 
+
+#==========end description dielectric function==========

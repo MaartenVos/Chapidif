@@ -1,0 +1,16 @@
+input file for Chapidif
+Dielectric function model: plain Lindhard or LL, add ELF, (without Mermin-renormalisation), quadratic dispersion, (non-relativistic)
+
+density,2.7, unit cell mass,27.0
+Osc. Amplitude 	Gamma(eV) 	Omega(eV) 	alpha 	U(eV) 
+0.925 	.5 	15.15 	0.0
+0.019 	15 	25 	0.0
+0.007 	45 	56 	0.0
+GOS N elec 	edge(eV) 	 10 * n + l	  atomic number Z 
+GOS 	6	72.7 	21 	13	 density effect included up  to: 200.0 (eV),	rescaling on 
+GOS 	2	118 	20 	13	 density effect included up  to: 200.0 (eV),	rescaling on 
+GOS 	2	1560 	10 	13	 density effect included up  to: 200.0 (eV),	rescaling on 
+Belkacem N elec 	omega(eV) 	 Gamma 
+Kaneko N elec 	 Q (a..u.) 	 width (eV)	 gap U (eV)	 ang. mom l 	 gamma arista 
+
+#==========end description dielectric function==========

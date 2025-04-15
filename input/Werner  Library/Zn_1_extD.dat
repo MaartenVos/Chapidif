@@ -1,0 +1,15 @@
+I can put some references here later......
+Dielectric function model: Extended Drude
+ELF reference: # Wolfgang S.M. Werner, Kathrin Glantschnig and Claudia Ambrosch-Draxl J. Phys. Chem. Ref. Data, Vol. 38, No. 4, 2009,1013-1092 #
+Background dielectric constant: 1.0
+Here are the parameters in the following order:
+Amplitue(eV2)	Gamma(eV)	Omega(eV)	Alfa
+85.919000	0.762000	0.000000	1.000000
+0.242000	0.541000	0.000000	1.000000
+3.605000	0.500000	4.235000	1.000000
+0.002000	0.500000	0.930000	1.000000
+9.510000	1.417000	5.850000	1.000000
+64.453000	0.760000	0.000000	1.000000
+14.302000	3.499000	10.411000	0.500000
+16.131000	26.429000	23.572000	0.500000
+1257.677000	114.686000	35.718000	0.500000

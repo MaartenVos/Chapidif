@@ -1,0 +1,17 @@
+installation:
+copy this folder with subfolders to a place of your choice.
+In clib-source there are batch files for compiling the C library for your operating system:
+script_epslib.bat: windows 32 bit
+script_epslib_64.bat:  windows 64 bit
+script_epslib.sh:  linux
+script_epslib_mac.sh : mac
+
+execute the appropriate script, and the library should be created in the clib subfolder.
+(requires gcc)
+
+Then execute chapidif.py in the usual way you execute a python3 file
+
+It requires the folllowing (widely-used) python packages:
+matplotlib, tkinter, numpy, os
+
+if problems, do not hesitate to ask:  maarten.vos@anu.edu.au
