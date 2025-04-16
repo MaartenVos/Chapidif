@@ -1819,7 +1819,8 @@ class calculate:
 
         for i in range(self.maxoscillators):  # now calculate new values for optimum U
             oldA = float(self.Amps[i].get())
-            if oldA > 0.0:
+          
+            if oldA != 0.0:
                 old_omega = float(self.Omegas[i].get())
                 old_U=float(self.Us[i].get())
                 old_position=math.sqrt(old_omega**2 + old_U**2)
@@ -1828,10 +1829,10 @@ class calculate:
                     self.Amps[i].set(f"{0.0:.4g}")
                 else:
                     new_omega = math.sqrt(old_position**2 - currentU**2)
-                NewA = oldA * (old_omega / new_omega) ** 2
-                self.Amps[i].set(f"{NewA:.4g}")
-                self.Omegas[i].set(f"{new_omega:.5g}")
-                self.Us[i].set(f"{currentU:.5g}")
+                    NewA = oldA * (old_omega / new_omega) ** 2
+                    self.Amps[i].set(f"{NewA:.4g}")
+                    self.Omegas[i].set(f"{new_omega:.5g}")
+                    self.Us[i].set(f"{currentU:.5g}")
      
         
 
@@ -2289,7 +2290,6 @@ class calculate:
                     currentl = float(self.l_Kaneko[i].get())
                     SumKaneko += currentN
                     if self.Kaneko_choice.get() == 0:   #modified Kaneko
-                        print("modified")
                         if currentl==0:
                             doublefact=1
                         elif currentl==1: 
@@ -2303,7 +2303,6 @@ class calculate:
                             *math.exp(currentl)/((2.0*currentl)**currentl*math.sqrt(math.pi)) )
                         w_p=w_p*cnst.HARTREE   
                         VolumeFractionKaneko += currentN*self.PlasmonE*self.PlasmonE/(w_p*w_p)  
-                        print ("w_p", w_p)
                     else:   # original Kaneko
                         qmean= currentQ*currentN**(1.0/3.0) 
                        # tmp=currentG*qmean**3/math.sqrt(math.pi)
