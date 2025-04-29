@@ -131,9 +131,10 @@ class read_write_files:
             elif "Kaneko" in line:
                 self.calc.N_Kaneko[iKaneko].set(nums[1])
                 self.calc.Q_Kaneko[iKaneko].set(nums[2])
-                self.calc.Edge_Kaneko[iKaneko].set(nums[3])
-                self.calc.l_Kaneko[iKaneko].set(nums[4])
-                self.calc.gamma_Kaneko[iKaneko].set(nums[5])
+                self.calc.width_Kaneko[iKaneko].set(nums[3])
+                self.calc.Edge_Kaneko[iKaneko].set(nums[4])
+                self.calc.l_Kaneko[iKaneko].set(nums[5])
+                self.calc.gamma_Kaneko[iKaneko].set(nums[6])
                 iKaneko = iKaneko + 1
                 if "modified Kaneko" in line:
                     self.calc.Kaneko_choice.set(0)
