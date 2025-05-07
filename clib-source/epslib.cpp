@@ -34,10 +34,11 @@ bool DebugMode=false;
 
 double Ai[MAXOSC], gammai[MAXOSC], wi[MAXOSC], alphai[MAXOSC],gapi[MAXOSC];
 double AiGOS[MAXGOS ],Edgei_GOS[MAXGOS],Zi_GOS[MAXGOS],GOS_ScalingFactor[MAXGOS][80];
+double TaucNormalisationq0[MAXOSC];
 double maxEnergyDensityEffect;
 const double GOSScalingStepSize=0.2; // used in GOS_Scaling_init
 double Ai_Belkacem[MAXBELKACEM],wi_Belkacem[MAXBELKACEM],gammai_Belkacem[MAXBELKACEM];
-bool  Full_dispersion,Local_Desep, Dispersion_relativistic;
+bool  Full_dispersion,Local_Desep, Dispersion_relativistic, kk_variable_stepsize;
 int n_i_GOS[MAXGOS ], l_i_GOS[MAXGOS ];
 
 double N_Kaneko[MAXKANEKO ],Edge_ArchubiKaneko[MAXKANEKO],Q_Kaneko[MAXKANEKO],Width_Kaneko[MAXKANEKO];
@@ -53,22 +54,22 @@ double E_0,p_0,v_0, rel_cor_factor,Egerton_rel_cor_factor, gamma_rel, beta_r, b_
 
 double rest_mass_energy;
 
-bool modelMerminLL,Apply_Mermin_Correction, modelDrude, modelDL, DirectMethod,  ApplySumRuleToGOS, OriginalKaneko, AddELF;//, NonNormMetal, AddEmptySpace, ApplySumRuleToGOS;
+bool modelMerminLL,Apply_Mermin_Correction, modelDrude, modelDL,modelTaucLorentz, DirectMethod,  ApplySumRuleToGOS, OriginalKaneko, AddELF;
 int ExchangeCorrection;
 double abserr, relerr;
 double FirstEnergy ,StepSize_eV,StepSize,Stepsize_qplot ,LastMomentum; 
 double q_lower,q_upper;
 int NStep;
-double lin_cont_deltaE; // for the integration of the DIIMFP
+double lin_cont_deltaE; // for the integration of the DIIMFP for stopping, also Tauc normalisation
 double q2maxFactor, q2surfmaxFactor;
-double q_transition, UMax, BE_for_exchange;
+double q_transition, BE_for_exchange;
 double theta_max;
 
 double mom_limit_lower[30], mom_limit_upper[30]; 
 double FSumRule, BetheSumRule,GOSBetheSumRule,KKSumRule,A_ScalingFactor,w_ScalingFactor;
 double theta0,theta1,sigma,PIcoef1,PIcoef2,PIcoef3,surf_ex_factor, fraction_DIIMFP;  // for reels spectrum
 dcomp  oneoverDL(double q, double current_w, double  gamma, double w, double alpha, double U);  // function declaration we generally use function after definition.  this is the exception, hence needs a declaration
-
+dcomp  oneoverTL(double q, double current_w, double  C, double E0, double alpha, double Egap);
 
 
 int check_for_exceptions()
@@ -630,11 +631,11 @@ dcomp Lindhard_LL(double q, double  omega, double gamma, double  omega0, double 
     {  
         if ( Apply_Mermin_Correction)
 		{
-			z1 = oneoverDL(q, omega, gamma, omega0, 0.0,omega_gap ); 
+			z1 = oneoverDL(q, omega, gamma, omega0, 1.0,omega_gap ); 
 		}
 		else  //plain lindhard, has double the nominal  width
 		{
-			z1 = oneoverDL(q, omega, 2* gamma, omega0, 0.0,omega_gap );
+			z1 = oneoverDL(q, omega, 2* gamma, omega0,1.0,omega_gap );
 		}
 		
         z1 = dcomp(1.0, 0.0) / z1 ;
@@ -654,7 +655,7 @@ dcomp Lindhard_Direct(double q, double  omega, double gamma, double  omega0, dou
     }
     else
     {
-        dcomp z1 = oneoverDL(q, omega, gamma, omega0, 0.0,omega_gap );
+        dcomp z1 = oneoverDL(q, omega, gamma, omega0, 1.0,omega_gap );
         eps=dcomp(1.0, 0.0) / z1 ;
     }
     
@@ -667,6 +668,7 @@ dcomp   eps_Kaneko(double q, dcomp omega_c, double q_mean, double U, double gamm
     dcomp eps,dd,u;
     double z;
     dcomp omega_minus=sqrt(omega_c*omega_c-U*U);
+   
     if(Dispersion_relativistic && (q > 1.0))
     {   
         double Qrecoil = sqrt(C * C * q * q + C * C * C * C) - C * C;
@@ -684,6 +686,7 @@ dcomp   eps_Kaneko(double q, dcomp omega_c, double q_mean, double U, double gamm
     dd=1.0/(4*z)*(term2-term1);
     eps=1.0 + gammaChi2/(z*z)*(dd);
     return eps;
+   
 }
 dcomp KanekoDirect (double q, double omega, double gamma, double  alpha, double U,  double gamma_fudge)
 {
@@ -721,7 +724,7 @@ dcomp diff_eps(double q, double omega, double gamma, double  alpha, double U, do
 {  
     dcomp eps_minus,eps_plus;
     double delta_alpha=0.005*alpha;
-    if(!DirectMethod)
+    if(!DirectMethod)// here we differentiate  after mermin correction if Apply_Mermin_Correction=true. not 100% sure about that one, seems to work
     {
 		eps_minus = Kaneko(q, omega, gamma, alpha-delta_alpha,U,gamma_fudge);
 		eps_plus  = Kaneko(q, omega, gamma, alpha+delta_alpha,U, gamma_fudge);
@@ -757,7 +760,7 @@ dcomp diff3_eps(double q, double omega, double gamma, double  alpha, double U, d
 dcomp  calculate_chi_AA_LL(double q)  // Archubi-Arista suggested use of  Levine Louie to calculate Kaneko with gap
                                         // revert to plane Kaneko if energy edge  (=U)is 0, calculated at w_global
 {
-    dcomp eps,sum_chi, oneoverchi,sum_oneoverchi,  omega_minus, omega_c;
+    dcomp eps,sum_chi, oneoverchi,sum_oneoverchi,  omega_minus, omega_c,z1;
     double alpha, Volume, Volumefraction,gamma_fudge;
     double ratio,U;
 
@@ -784,13 +787,23 @@ dcomp  calculate_chi_AA_LL(double q)  // Archubi-Arista suggested use of  Levine
                 printf("warning, unphysical density Kaneko component  %i volumefraction: %6.4f\n",i, Volumefraction);
             }
             
-            dcomp u_max=omega_minus/ ((q+1.0e-6)*Q_Kaneko[i]);
+   
 
-            if(u_max.imag() > UMax) 
-            {  //for small q the algoritm is only stable for very narrow peaks, replace with Drude Lindhard under these conditions at plasmon energy and Kaneko width
-                dcomp oneovereps = oneoverDL(q, w_global, Width_Kaneko[i], w_pl_l[i], 1.0, Edge_ArchubiKaneko[i]);
-                eps = dcomp(1.0, 0.0) / oneovereps;                 
+            if (q < q_transition*w_global+0.00001)
+            {
+               //  printf("was here q= %6.4f\n",q);
+                if ( Apply_Mermin_Correction||DirectMethod )
+                {
+                    z1 = oneoverDL(q, w_global, Width_Kaneko[i], w_pl_l[i], 1.0,U ); 
+                }
+                else  //plain RPA , has double the nominal  width
+                { 
+                    z1 = oneoverDL(q, w_global, 2* Width_Kaneko[i], w_pl_l[i], 1.0,U );
+                }
+                
+                eps = dcomp(1.0, 0.0) / z1 ;
             }
+          
             else if(l_Kaneko[i]==0)
             {   if(!DirectMethod) 
 				{                     
@@ -926,9 +939,97 @@ dcomp  oneoverDL(double q, double current_w, double  gamma, double w, double alp
     dcomp one_over_eps = 1.0 + w*w/(current_w*current_w - w_at_q_square - U*U+ current_w*gamma_C );
 	return one_over_eps;
 }
+double TaucNormalisation(double  C, double E0_thisq,  double Egap)
+{   int nstep=1000;
+    double stepsize= C/40;
+    double sum=0.0; 
+    double x;
+    double Elower= E0_thisq;
+    double Eupper= E0_thisq;
+    
+    for (int i=0; i < nstep/2; i++)
+    {
+        if( Elower > Egap)
+        {
+            x = E0_thisq*C*pow((Elower-Egap),2)/((pow((Elower*Elower-E0_thisq*E0_thisq),2)+C*C*Elower*Elower))*stepsize;
+            sum +=x;
+        }
+        x = E0_thisq*C*pow((Eupper-Egap),2)/((pow((Eupper*Eupper-E0_thisq*E0_thisq),2)+C*C*Eupper*Eupper))*stepsize;
+        sum +=x;
+        stepsize=stepsize*(1.07);
+        Eupper += stepsize;
+        Elower -= stepsize;
+        //if(Eupper > (E0_thisq + 50*(C +5*C*C/(E0_thisq-Egap)))) //if E0 close to gap peak becomes wide
+        //{  // printf("normalisation ended n=%i\n",i);
+            //return(sum);
+        //}
+        if(x/sum < 1e-6) 
+        {   printf("last i %i, sum %6.4f\n",i,sum);
+            return (sum);
+        }
+            
+    } 
+   // printf("sum  %6.4f\n",sum);
+    return sum;
+}
+dcomp  ChiTaucLorentz(double E, double  C, double E0,  double Egap)
+{
+    double Chi1,Chi2;
+    double a_ln=(Egap*Egap-E0*E0)*E*E+Egap*Egap*C*C-E0*E0*(E0*E0+3*Egap*Egap);
+    double a_atan=(E*E-E0*E0)*(E0*E0+Egap*Egap)+Egap*Egap*C*C;
+    double gamma=sqrt(E0*E0-C*C/2);
+    double alpha=sqrt(4*E0*E0-C*C);
+    double zeta4=(E*E-gamma*gamma)*(E*E-gamma*gamma)+alpha*alpha*C*C/4;
+    
+    if(E> Egap)
+    {
+        Chi2=E0*C*pow((E-Egap),2)/((pow((E*E-E0*E0),2)+C*C*E*E)*E);
+       
+    }
+    else
+    {   
+        Chi2=0.0;
+    }
+        
+    Chi1  = C/(pi*zeta4)*a_ln/(2*alpha*E0)*log((E0*E0+Egap*Egap+alpha*Egap)/(E0*E0+Egap*Egap-alpha*Egap));
+    Chi1 -= a_atan/(pi*zeta4*E0)*(pi-atan((2*Egap+alpha)/C)+ atan((-2*Egap+alpha)/C));
+    Chi1 += 2*E0/(pi*zeta4*alpha)*Egap*(E*E-gamma*gamma)*(pi+2*atan(2*(gamma*gamma-Egap*Egap)/(alpha*C)));
+    Chi1 -= E0*C/(pi*zeta4)*(E*E+Egap*Egap)/E*log(fabs(E-Egap)/(E+Egap));
+    Chi1 += 2*E0*C/(pi*zeta4)*Egap*log((fabs(E-Egap)*(E+Egap))/sqrt(pow((E0*E0-Egap*Egap),2)+Egap*Egap*C*C));
+
+    return dcomp(Chi1,Chi2);
+}
 
 
-
+dcomp TaucLorentz_Sum(double q)
+{          
+    dcomp ChiTL, sumoneovereps,sumeps,sumoneoverchi;
+    // first the shift due to dispersion
+    double Qrecoil,currentE0;
+    double norm_this_q;
+    if(Dispersion_relativistic)
+    {
+        Qrecoil = sqrt(C * C * q * q + C * C * C * C) - C * C;  //m_e is 1 in a.u.
+    }
+    else
+    {
+        Qrecoil = q * q / 2.0;
+    }     
+         
+	sumoneoverchi = dcomp(0.0, 0.0);
+    sumeps=dcomp(epsbkg,0.0);   
+    
+	for (int i = 0; i < MAXOSC; i++)
+	{
+		if (fabs(Ai[i]) >1e-90)
+		{   currentE0=wi[i]+alphai[i]*Qrecoil;
+            norm_this_q=TaucNormalisation(gammai[i], currentE0,  gapi[i]);
+            ChiTL = (Ai[i]*TaucNormalisationq0[i]/norm_this_q)*ChiTaucLorentz(w_global,gammai[i],currentE0, gapi[i]);
+            sumeps+=ChiTL ;
+        }
+    }
+    return (sumeps);
+}
 
 dcomp DL_Sum(double q)
 {
@@ -1118,6 +1219,10 @@ dcomp calculate_eps_osc(double q)
 	{   
 		eps = DL_Sum(q);
 	}
+    else if (modelTaucLorentz)
+	{   
+		eps = TaucLorentz_Sum(q);
+	}
    	return eps;
 }
 
@@ -1175,9 +1280,10 @@ dcomp calculate_chi_GOS_dens(double q, double omega, int GOSi) //// calculates e
     {
       
         double current_StepSize=Edgei_GOS[GOSi]/200;// assume these are core levels  energy resolution required of the order of 0.5% of BE?
+        if(current_StepSize < StepSize) current_StepSize= StepSize;
         double w_below=omega-current_StepSize;
         double w_above=omega+current_StepSize;
-        int KKWidth=500;
+        int KKWidth=5000;
         for(int i=1; i< KKWidth; i++)
         {
             w_below-=current_StepSize;
@@ -1191,7 +1297,7 @@ dcomp calculate_chi_GOS_dens(double q, double omega, int GOSi) //// calculates e
             Contribution_top=current_StepSize*W_plasmon_GOS_square*GOSx(n_i_GOS[GOSi], l_i_GOS[GOSi], Zi_GOS[GOSi], Edgei_GOS[GOSi], q, w_above)/(omega*omega- w_above*w_above);
             chi_real-=(Contribution_below+Contribution_top);
          
-            current_StepSize=current_StepSize*1.01;
+            if (kk_variable_stepsize)current_StepSize=current_StepSize*1.01;
         }
         
     }
@@ -1413,7 +1519,7 @@ int  copyP_to_Vars(double *p,  int modelchoice)
 	double SumAi;
     double precision;
     int Param_Offset;
-	modelMerminLL = false; modelDrude = false; modelDL = false; DirectMethod=false;
+	modelMerminLL = false; modelDrude = false; modelDL = false; DirectMethod=false;modelTaucLorentz = false;
 	if (modelchoice == 1)
 	{
 		 modelDrude = true;
@@ -1426,8 +1532,13 @@ int  copyP_to_Vars(double *p,  int modelchoice)
 	{
 		modelMerminLL = true; 
 	}
-
-	epsbkg = p[0];  // not sure if this is still used
+    else if (modelchoice == 4)
+	{
+		modelTaucLorentz = true; 
+	}
+    epsbkg=1.0;
+	if (modelTaucLorentz) epsbkg = p[0]; 
+   
 
 	// now read the components
 	SumAi = 0.0; 
@@ -1442,6 +1553,11 @@ int  copyP_to_Vars(double *p,  int modelchoice)
             if (modelDrude) Ai[i] = Ai[i] / (Hartree*Hartree);// Ai is in eV^2 in DL
             alphai[i] = p[5 * i + 4];
             gapi[i] = p[5* i + 5] / Hartree;  //  gapi in LL model,gapi[]=0 gives Mermin
+            if (modelTaucLorentz)
+            {
+                 Ai[i] = Ai[i] / (Hartree);// Ai is in eV in DT
+                 TaucNormalisationq0[i]=TaucNormalisation(gammai[i],wi[i],gapi[i]);
+            }  
             SumAi = SumAi + Ai[i];
         }
 	}
@@ -1625,6 +1741,17 @@ int  copyP_to_Vars(double *p,  int modelchoice)
         Full_dispersion=true;
     }
     maxEnergyDensityEffect = p[Param_Offset + 21]/Hartree;
+    if( maxEnergyDensityEffect < 0.0)
+    {
+        maxEnergyDensityEffect=-maxEnergyDensityEffect;
+        kk_variable_stepsize=false;
+        printf(" no variable stepsize\n");
+    }
+    else
+    {
+        kk_variable_stepsize=true;
+        printf("using  variable stepsize\n");
+    }    
    
     // for REELS spectrum 
     sigma=p[Param_Offset + 22]/2.355;
@@ -1657,11 +1784,13 @@ int  copyP_to_Vars(double *p,  int modelchoice)
     if(p[Param_Offset + 32]==1.0)
     {
         Dispersion_relativistic= true;
+        printf("rel\n");
         
     }
     else
     {
          Dispersion_relativistic= false;
+         printf("non_rel\n");
     }    
     theta_max= p[Param_Offset + 33]/1000.0;  // now in rad
     MottCorrection = false;
@@ -1675,7 +1804,7 @@ int  copyP_to_Vars(double *p,  int modelchoice)
     b_zero=pow(1.0-sqrt(1.0-beta_r*beta_r),2);  // for the Moller cross section
    
     p_0=gamma_rel*Projectile_Mass*v_0;
-    UMax=p[Param_Offset + 35];
+  //  UMax=p[Param_Offset + 35]; this parameter is not used anymore
     BE_for_exchange=p[Param_Offset + 36];
     BE_for_exchange=BE_for_exchange/Hartree;
     int ExchangeCorrectionMode= p[Param_Offset + 37];
@@ -2196,9 +2325,14 @@ extern "C"
         if (errno !=0) my_perror("an error occured");
         return;
 	}
+    double TaucSumRule(double  C, double E0,  double Egap)  // this does NOT call copyP_to_vars
+    {   
+        double sum= TaucNormalisation(  C, E0,  Egap);
+        return sum;
+    }
     
 
-     int  Kramers_Kronig_eps1_from_eps2(double FirstE, double DeltaE, int length, double const *eps2, double *eps1)  // does not depend on  copyP_to_Vars
+     int  Kramers_Kronig_eps1_from_eps2(double FirstE, double DeltaE,double  eps1_infinity ,int length, double const *eps2, double *eps1)  // does not depend on  copyP_to_Vars
      {  
         double omega_prime;
         for (int i = 0; i < length; i++)
@@ -2211,13 +2345,13 @@ extern "C"
                 if (i != k)
                      KKsum += omega_prime*eps2[k] / (omega_prime * omega_prime - omega * omega) * DeltaE;// Wooten eq. 6.52 
            }                                                                                                               
-           eps1[i]  =2.0* KKsum / pi + 1.0; //the factor 2 because we go from 0 to large rather than -large to large
+           eps1[i]  =2.0* KKsum / pi + eps1_infinity; //the factor 2 because we go from 0 to large rather than -large to large
         }
         if (errno !=0) my_perror("Kramers_Kronig_eps1_from_eps2: an error occured");
         return 0;
      }  
      
-    int  Kramers_Kronig_eps2_from_eps1(double FirstE, double DeltaE, int length, double const *eps1, double *eps2) // does not depend on  copyP_to_Vars
+    int  Kramers_Kronig_eps2_from_eps1(double FirstE, double DeltaE,double  eps1_infinity , int length, double const *eps1, double *eps2) // does not depend on  copyP_to_Vars
      {  
         double omega_prime;
         for (int i = 0; i < length; i++)
@@ -2228,7 +2362,7 @@ extern "C"
            {
                 omega_prime = k * DeltaE + FirstE;
                 if (i != k)
-                     KKsum += omega * (eps1[k]-1) / (omega_prime*omega_prime - omega*omega) * DeltaE;// Wooten eq. 6.52 
+                     KKsum += omega * (eps1[k]- eps1_infinity ) / (omega_prime*omega_prime - omega*omega) * DeltaE;// Wooten eq. 6.52 
            }                                                                                                               
            eps2[i]  = - 2.0* KKsum / pi; //the factor 2 because we go from 0 to large rather than -large to large
         }
